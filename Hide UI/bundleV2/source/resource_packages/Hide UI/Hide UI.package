@@ -1,0 +1,11 @@
+mod = [
+	"Hide UI"
+]
+
+package = [
+	"resource_packages/Hide UI/Hide UI"
+]
+
+lua = [
+	"scripts/mods/Hide UI/*"
+]
