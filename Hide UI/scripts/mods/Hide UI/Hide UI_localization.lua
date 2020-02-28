@@ -20,8 +20,8 @@ return {
 		es = "Por completo",
 	},
 	option_three_localization_id = {
-		en = "Complete and no arms",
-		es = "Por completo y sin brazos",
+		en = "Camera",
+		es = "Camara",
 	},
 }
 --[[
