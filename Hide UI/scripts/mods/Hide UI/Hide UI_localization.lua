@@ -23,6 +23,14 @@ return {
 		en = "Camera",
 		es = "Camara",
 	},
+	keep_outlines_title_localization_id = {
+		en = "Keep outlines",
+		es = "Mantener contornos",
+	},
+	keep_outlines_tooltip_localization_id = {
+		en = "Set to ON if you'd like to keep seeing outlines even while the mod is active.",
+		es = "Prender si quiere ver los contornos aun con el mod prendido.",
+	}
 }
 --[[
 	some_other_text_id = {

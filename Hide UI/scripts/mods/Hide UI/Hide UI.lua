@@ -6,12 +6,15 @@ local toggle_setting
 local realism_group = require("scripts/ui/views/ingame_hud_definitions").visibility_groups_lookup.realism
 local disable_ingame_ui_group = require("scripts/ui/views/ingame_hud_definitions").visibility_groups_lookup.disable_ingame_ui
 local realism_mutator = require("scripts/settings/mutators/mutator_realism")
+local keep_outlines_on
 
 
 --<LOCAL FUNCTIONS>--
 local function disable_outlines() --disables the outline system
-	local outline_system = Managers.state.entity:system("outline_system")
-	outline_system:set_disabled(true)
+	if (not keep_outlines_on) then
+		local outline_system = Managers.state.entity:system("outline_system")
+		outline_system:set_disabled(true)
+	end
 end
 local function enable_outlines() --enables the outline system
 	if (not Managers.state.game_mode:has_activated_mutator("realism")) then --but only if the Act on Instinct mutator isn't active
@@ -23,6 +26,7 @@ end
 local function mod_setup() --Triggers when the mod starts and whenever the hood_toggle_option setting gets changed
 	toggle_setting = mod:get("hud_toggle_option")
 	disable_ui = false
+	keep_outlines_on = mod:get("keep_outlines")
 	
 	--Toggle the appropiate hooks
 	if (toggle_setting=="partial") then
@@ -54,7 +58,6 @@ local function turn_on_arms()
 		local first_person_extension = ScriptUnit.extension(local_player_unit, "first_person_system")
 		first_person_extension:unhide_weapons(first_person_extension, "ui_off")
 		if (first_person_extension.first_person_mode) then
-			first_person_extension:unhide_weapons(first_person_extension, "ui_off")
 			Unit.set_unit_visibility(first_person_extension.first_person_attachment_unit, true)		
 		--else mod:echo("Can't turn on arms, not in first person!")
 		end
@@ -90,11 +93,9 @@ function mod.toggle_UI() --Toggles the UI according to the "hud_toggle_option" s
 end
 
 mod.on_setting_changed = function(setting_name) --Reset mod when the toggle mode is changed
-	if (setting_name == "hud_toggle_option") then
-		mod_setup()
-		enable_outlines()
-		turn_on_arms()
-	end
+	mod_setup()
+	enable_outlines()
+	turn_on_arms()
 end
 
 
@@ -107,8 +108,8 @@ mod:hook(TwitchIconView, "_draw", function(func, self, ...) --Hide the Twitch mo
 end)
 
 ---realism_mutator defined in line 9
-mod:hook(realism_mutator, "client_stop_function", function (func, context, data) --Prevents the end of the Act on Instinct mutator from re-enabling the outline system, if the player has turned off the ui with my mod.
-	if (not (disable_ui)) then 
+mod:hook(realism_mutator, "client_stop_function", function (func, context, data) --Prevents the end of the Act on Instinct mutator from re-enabling the outline system, if the player has turned off the ui with my mod
+	if ((not disable_ui) or keep_outlines_on) then	-- (but allows it to do it anyway if the Keep Outlines option is set to on)
 		return func(context,data) 
 	end
 end)
@@ -130,10 +131,10 @@ mod:hook(disable_ingame_ui_group, "validation_function", function (func, ingame_
 end)
 
 
-mod:hook_safe(PlayerUnitFirstPerson, "set_first_person_mode", function (self, active, override)--Re-hides the first person arms if something turns them on when I don't want to
+mod:hook_safe(PlayerUnitFirstPerson, "set_first_person_mode", function (self, active, override)--Re-hides the first person arms if something turns them on when I don't want to (mod set to Camera & mod is active)
 	if (active) then
 		camera_moving_to_first_person = false
-		if (toggle_setting=="plus" and disable_ui) then
+		if (disable_ui) then --if (toggle_setting=="plus" and disable_ui) then
 			Unit.set_unit_visibility(self.first_person_attachment_unit,false)
 		end
 	end

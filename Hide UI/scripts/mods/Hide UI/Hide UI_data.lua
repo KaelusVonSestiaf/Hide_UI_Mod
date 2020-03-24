@@ -26,6 +26,13 @@ options = {
 				keybind_type="function_call",
 				function_name="toggle_UI",				
 			},		
+			{
+				  setting_id    = "keep_outlines",
+				  type          = "checkbox",
+				  default_value = false,
+				  title = "keep_outlines_title_localization_id",
+				  tooltip = "keep_outlines_tooltip_localization_id",
+			},
 		}
 	}
 }
