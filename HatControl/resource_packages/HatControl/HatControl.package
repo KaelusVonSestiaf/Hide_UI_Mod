@@ -1,0 +1,11 @@
+mod = [
+	"HatControl"
+]
+
+package = [
+	"resource_packages/HatControl/HatControl"
+]
+
+lua = [
+	"scripts/mods/HatControl/*"
+]
