@@ -3,8 +3,19 @@ local mod = get_mod("Hide UI")
 --<LOCAL VARIABLES>--
 local disable_ui
 local toggle_setting
-local realism_group = require("scripts/ui/views/ingame_hud_definitions").visibility_groups_lookup.realism
-local disable_ingame_ui_group = require("scripts/ui/views/ingame_hud_definitions").visibility_groups_lookup.disable_ingame_ui
+local realism_group
+local disable_ingame_ui_group
+local function get_visibility_groups()
+	local visibility_groups = require("scripts/ui/hud_ui/component_list_definitions/hud_component_list_adventure").visibility_groups
+	for _, settings in ipairs(visibility_groups) do
+		if (settings.name == "realism") then
+			realism_group = settings
+		elseif (settings.name == "disable_ingame_ui") then
+			disable_ingame_ui_group = settings
+		end
+	end
+end
+get_visibility_groups()
 local realism_mutator = require("scripts/settings/mutators/mutator_realism")
 local keep_outlines_on
 
