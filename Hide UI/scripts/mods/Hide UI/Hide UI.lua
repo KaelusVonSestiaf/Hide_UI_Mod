@@ -3,19 +3,16 @@ local mod = get_mod("Hide UI")
 --<LOCAL VARIABLES>--
 local disable_ui
 local toggle_setting
+mod.ingame_ui_context = nil
+
 local realism_group
 local disable_ingame_ui_group
 local function get_visibility_groups()
-	local visibility_groups = require("scripts/ui/hud_ui/component_list_definitions/hud_component_list_adventure").visibility_groups
-	for _, settings in ipairs(visibility_groups) do
-		if (settings.name == "realism") then
-			realism_group = settings
-		elseif (settings.name == "disable_ingame_ui") then
-			disable_ingame_ui_group = settings
-		end
-	end
+	local ingame_hud_definitions = mod.ingame_ui_context.ingame_ui.ingame_hud._definitions
+	realism_group = ingame_hud_definitions.visibility_groups_lookup.realism
+	disable_ingame_ui_group = ingame_hud_definitions.visibility_groups_lookup.disable_ingame_ui
 end
-get_visibility_groups()
+
 local realism_mutator = require("scripts/settings/mutators/mutator_realism")
 local keep_outlines_on
 
@@ -40,19 +37,21 @@ local function mod_setup() --Triggers when the mod starts and whenever the hood_
 	keep_outlines_on = mod:get("keep_outlines")
 	
 	--Toggle the appropiate hooks
-	if (toggle_setting=="partial") then
-		mod:hook_enable(realism_group, "validation_function")
-		mod:hook_disable(disable_ingame_ui_group, "validation_function")
-		mod:hook_disable(PlayerUnitFirstPerson, "set_first_person_mode")
-	elseif (toggle_setting=="total") then
-		mod:hook_disable(realism_group, "validation_function")
-		mod:hook_enable(disable_ingame_ui_group, "validation_function")
-		mod:hook_disable(PlayerUnitFirstPerson, "set_first_person_mode")
-	else
-		mod:hook_disable(realism_group, "validation_function")
-		mod:hook_enable(disable_ingame_ui_group, "validation_function")
-		mod:hook_enable(PlayerUnitFirstPerson, "set_first_person_mode")
-	end	
+	if mod.ingame_ui_context then
+		if (toggle_setting=="partial") then
+			mod:hook_enable(realism_group, "validation_function")
+			mod:hook_disable(disable_ingame_ui_group, "validation_function")
+			mod:hook_disable(PlayerUnitFirstPerson, "set_first_person_mode")
+		elseif (toggle_setting=="total") then
+			mod:hook_disable(realism_group, "validation_function")
+			mod:hook_enable(disable_ingame_ui_group, "validation_function")
+			mod:hook_disable(PlayerUnitFirstPerson, "set_first_person_mode")
+		else
+			mod:hook_disable(realism_group, "validation_function")
+			mod:hook_enable(disable_ingame_ui_group, "validation_function")
+			mod:hook_enable(PlayerUnitFirstPerson, "set_first_person_mode")
+		end
+	end
 end
 
 local function can_toggle ()--Can I toggle the UI?
@@ -118,7 +117,7 @@ mod:hook(TwitchIconView, "_draw", function(func, self, ...) --Hide the Twitch mo
 	return func(self, ...)
 end)
 
----realism_mutator defined in line 9
+---realism_mutator defined in line 23
 mod:hook(realism_mutator, "client_stop_function", function (func, context, data) --Prevents the end of the Act on Instinct mutator from re-enabling the outline system, if the player has turned off the ui with my mod
 	if ((not disable_ui) or keep_outlines_on) then	-- (but allows it to do it anyway if the Keep Outlines option is set to on)
 		return func(context,data) 
@@ -128,19 +127,25 @@ end)
 
 --<HOOKS THAT I SHOULD ENABLE/DISABLE AS NEEDED>--
 
----realism_group defined in line 7
-mod:hook(realism_group, "validation_function", function (func, ingame_hud) --Hooks my mod into the visibility group 'realism', so that the visibility group is active whether my mod activates it, or the game does.
-	local result = func(ingame_hud)
-	return (disable_ui or result)
-end)
-	
+mod:hook_safe(StateInGameRunning, "update", function (self)
+    if not mod.ingame_ui_context then
+        mod.ingame_ui_context = self.ingame_ui_context
+		mod:hook_disable(StateInGameRunning, "update")
+		get_visibility_groups()
 
----disable_ingame_ui_group defined in line 8
-mod:hook(disable_ingame_ui_group, "validation_function", function (func, ingame_hud) --Hooks my mod into the visibility group 'disable ingame ui', so that the visibility group is active whether my mod activates it, or the game does.
-	local result = func(ingame_hud)
-	return (disable_ui or result)
+		---realism_group defined in line 12
+		mod:hook(realism_group, "validation_function", function (func, ingame_hud) --Hooks my mod into the visibility group 'realism', so that the visibility group is active whether my mod activates it, or the game does.
+			local result = func(ingame_hud)
+			return (disable_ui or result)
+		end)
+		---disable_ingame_ui_group defined in line 13
+		mod:hook(disable_ingame_ui_group, "validation_function", function (func, ingame_hud) --Hooks my mod into the visibility group 'disable ingame ui', so that the visibility group is active whether my mod activates it, or the game does.
+			local result = func(ingame_hud)
+			return (disable_ui or result)
+		end)
+		mod_setup()
+    end
 end)
-
 
 mod:hook_safe(PlayerUnitFirstPerson, "set_first_person_mode", function (self, active, override)--Re-hides the first person arms if something turns them on when I don't want to (mod set to Camera & mod is active)
 	if (active) then
@@ -150,8 +155,3 @@ mod:hook_safe(PlayerUnitFirstPerson, "set_first_person_mode", function (self, ac
 		end
 	end
 end)
-
-
-
---mod starts
-mod_setup()
